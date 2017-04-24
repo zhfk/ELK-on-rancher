@@ -1,0 +1,39 @@
+version: '2'
+services:
+  nginx-proxy:
+    metadata:
+      nginx: &id001
+        conf:
+          servername: kibana
+          upstream_port: 5601
+    scale: 1
+    start_on_create: true
+  kibana-vip:
+    scale: 1
+    start_on_create: true
+    lb_config:
+      certs: []
+      port_rules:
+      - protocol: http
+        service: nginx-proxy
+        source_port: 80
+        target_port: 80
+    health_check:
+      healthy_threshold: 2
+      response_timeout: 2000
+      port: 42
+      unhealthy_threshold: 3
+      initializing_timeout: 60000
+      interval: 2000
+      strategy: recreate
+      reinitializing_timeout: 60000
+  nginx-proxy-conf:
+    metadata:
+      nginx: *id001
+    scale: 1
+    start_on_create: true
+  kibana5:
+    metadata:
+      nginx: *id001
+    scale: 1
+    start_on_create: true

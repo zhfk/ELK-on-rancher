@@ -1,0 +1,57 @@
+version: '2'
+services:
+  logstash-collector-config:
+    image: rancher/logstash-config:v0.2.0
+    links:
+    - redis:redis
+    labels:
+      io.rancher.container.hostname_override: container_name
+  logstash-collector:
+    image: logstash:5.1.1-alpine
+    stdin_open: true
+    tty: true
+    links:
+    - redis:redis
+    volumes_from:
+    - logstash-collector-config
+    ports:
+    - 51131:5000/udp
+    - 60655:6000/tcp
+    command:
+    - logstash
+    - -f
+    - /etc/logstash
+    labels:
+      io.rancher.sidekicks: logstash-collector-config
+      io.rancher.container.hostname_override: container_name
+  logstash-indexer:
+    image: logstash:5.1.1-alpine
+    stdin_open: true
+    external_links:
+    - Log-elasticsearch/elasticsearch1:elasticsearch
+    tty: true
+    links:
+    - redis:redis
+    volumes_from:
+    - logstash-indexer-config
+    command:
+    - logstash
+    - -f
+    - /etc/logstash
+    labels:
+      io.rancher.sidekicks: logstash-indexer-config
+      io.rancher.container.hostname_override: container_name
+  redis:
+    image: redis:3.2.6-alpine
+    stdin_open: true
+    tty: true
+    labels:
+      io.rancher.container.hostname_override: container_name
+  logstash-indexer-config:
+    image: rancher/logstash-config:v0.2.0
+    external_links:
+    - Log-elasticsearch/elasticsearch1:elasticsearch
+    links:
+    - redis:redis
+    labels:
+      io.rancher.container.hostname_override: container_name

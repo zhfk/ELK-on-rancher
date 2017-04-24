@@ -1,0 +1,16 @@
+version: '2'
+services:
+  logspout:
+    image: bekt/logspout-logstash:latest
+    environment:
+      LOGSPOUT: ignore
+      ROUTE_URIS: logstash://collector:5000
+    stdin_open: true
+    external_links:
+    - Log-logstash/logstash-collector:collector
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    tty: true
+    labels:
+      io.rancher.scheduler.global: 'true'
+      io.rancher.container.hostname_override: container_name

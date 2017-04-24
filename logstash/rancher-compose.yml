@@ -1,0 +1,63 @@
+version: '2'
+services:
+  logstash-collector-config:
+    metadata:
+      logstash: &id001
+        inputs: |+
+          udp {
+            port => 5000
+            codec => "json"
+          }
+
+        outputs: |
+          redis {
+            host => "redis.rancher.internal"
+            port => "6379"
+            data_type => "list"
+            key => "logstash"
+          }
+    scale: 1
+    start_on_create: true
+  logstash-collector:
+    metadata:
+      logstash: *id001
+    scale: 1
+    start_on_create: true
+  logstash-indexer:
+    metadata:
+      logstash: &id002
+        filters: "if [type] == \"syslog\" \n{\n\tgrok {\n\t  match => { \"message\"\
+          \ => \"%{SYSLOG5424PRI}%{NONNEGINT:ver} +(?:%{TIMESTAMP_ISO8601:ts}|-) +(?:%{HOSTNAME:containerid}|-)\
+          \ +(?:%{NOTSPACE:containername}|-) +(?:%{NOTSPACE:proc}|-) +(?:%{WORD:msgid}|-)\
+          \ +(?:%{SYSLOG5424SD:sd}|-|) +%{GREEDYDATA:msg}\" }\n\t}\n\tsyslog_pri {\
+          \ }\n\tdate {\n\t  match => [ \"syslog_timestamp\", \"MMM  d HH:mm:ss\"\
+          , \"MMM dd HH:mm:ss\" ]\n\t}\n\tif !(\"_grokparsefailure\" in [tags]) {\n\
+          \t  mutate {\n\t    replace => [ \"@source_host\", \"%{syslog_hostname}\"\
+          \ ]\n\t    replace => [ \"@message\", \"%{syslog_message}\" ]\n\t  }\n\t\
+          }\n\tmutate {\n\t  remove_field => [ \"syslog_hostname\", \"syslog_message\"\
+          , \"syslog_timestamp\" ]\n\t}\n}\n"
+        inputs: |
+          redis {
+            host => "redis.rancher.internal"
+            port => "6379"
+            data_type => "list"
+            key => "logstash"
+          }
+        outputs: |+
+          elasticsearch {
+            hosts => ["elasticsearch.rancher.internal:9200"]
+          }
+          stdout {
+            codec => rubydebug
+          }
+
+    scale: 1
+    start_on_create: true
+  redis:
+    scale: 1
+    start_on_create: true
+  logstash-indexer-config:
+    metadata:
+      logstash: *id002
+    scale: 1
+    start_on_create: true
