@@ -35,6 +35,9 @@ services:
     external_links:
     - Log-elasticsearch/elasticsearch1:elasticsearch
     network_mode: container:nginx-proxy
+    volumes:
+    - /usr/share/kibana/optimize:/usr/share/kibana/optimize
+    - /usr/share/kibana/plugins:/usr/share/kibana/plugins
     tty: true
     labels:
       io.rancher.container.hostname_override: container_name
